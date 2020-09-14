@@ -39,16 +39,32 @@ class Sliders:
 
 
 if __name__ == "__main__":
-    sliders = Sliders("sliders", 5)
-    named_sliders = Sliders("named_sliders", "jan", "piet", "klaas")
-    cv2.waitKey(0)
+    # sliders = Sliders("sliders", 5)
+    # named_sliders = Sliders("named_sliders", "jan", "piet", "klaas")
+    # cv2.waitKey(0)
+    #
+    # print("\nValues from sliders are:")
+    # for slider in sliders.sliders:
+    #     print(slider + ": " + str(sliders.get_value_by_name(slider)))
+    #
+    # for i in range(len(sliders.sliders)):
+    #     print(slider + ": " + str(sliders.get_value_by_index(i)))
+    #
+    # print("\nValues from named_sliders are:")
+    # for slider in named_sliders.sliders:
+    #     print(slider + ": " + str(named_sliders.get_value_by_name(slider)))
 
-    print("\nValues from sliders are:")
-    for slider in sliders.sliders:
-        print(slider + ": " + str(sliders.get_value_by_name(slider)))
+    HSV_sliders = Sliders("HSV sliders", "h", "s", "v")
 
-    print("\nValues from named_sliders are:")
-    for slider in named_sliders.sliders:
-        print(slider + ": " + str(named_sliders.get_value_by_name(slider)))
+    while True:
+        h = HSV_sliders.get_value_by_name("h")
+        s = HSV_sliders.get_value_by_name("s")
+        v = HSV_sliders.get_value_by_name("v")
+
+        print('h', h, 's', s, 'v', v)
+
+        key = cv2.waitKey(10)
+        if key == ord('q'):
+            break
 
     cv2.destroyAllWindows()

@@ -21,7 +21,7 @@ def auto_canny(image, lower_range=0, sigma=0.35):
     return edged
 
 
-filenames = glob.glob('raw_images/banana/*.jpg')
+filenames = glob.glob('raw_images/banana_orange_peach_pear/*.jpg')
 num_files = len(filenames) - 1
 file_index = 0
 
@@ -36,6 +36,7 @@ hue_slider.set_value_by_name("hue_upper", 255)
 
 while True:
     img = cv2.imread(filenames[file_index])
+    draw_img = img.copy()
     width, height, _ = img.shape
     new_width = int(width * .2)
     new_height = int(height * .2)
@@ -81,15 +82,32 @@ while True:
     masked_img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV_FULL)
     masked_img_h = masked_img_hsv[:, :, 0]
 
-    hue_histr = cv2.calcHist([masked_img_h], [0], None, [256], [1, 256])
-    # plt.plot(hue_histr)
-    # plt.show()
+    masked_img_h_blur = cv2.GaussianBlur(masked_img_h, (5, 5), 0)
+
+    # hue_histr = cv2.calcHist([masked_img_h], [0], None, [256], [1, 256])
+    #plt.plot(hue_histr)
+    #plt.show()
 
     hue_lower = hue_slider.get_value_by_name("hue_lower")
     hue_upper = hue_slider.get_value_by_name("hue_upper")
-    blue = cv2.inRange(masked_img_h, hue_lower, hue_upper)
 
-    ext.resized_imshow(blue, (new_height, new_width), "blue")
+    print("hue_lower", hue_lower)
+    print("hue_upper", hue_upper)
+
+    hue_mask = cv2.inRange(masked_img_h_blur, hue_lower, hue_upper)
+    contours, _ = cv2.findContours(hue_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    print("len(contours)", len(contours))
+    if len(contours) > 0:
+        cnt = max(contours, key=cv2.contourArea)
+        rect = cv2.minAreaRect(cnt)
+        print("rect.shape", rect)
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
+        cv2.drawContours(draw_img, [box], 0, (0, 0, 255), 2)
+
+
+    ext.resized_imshow(draw_img, (new_height, new_width), "draw_img")
+    ext.resized_imshow(hue_mask, (new_height, new_width), "hue_mask")
 
     # scroll through images
     key = cv2.waitKey(10)

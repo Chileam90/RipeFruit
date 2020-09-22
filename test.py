@@ -37,6 +37,7 @@ hue_slider.set_value_by_name("hue_upper", 255)
 while True:
     img = cv2.imread(filenames[file_index])
     draw_img = img.copy()
+    org_img = img.copy()
     width, height, _ = img.shape
     new_width = int(width * .2)
     new_height = int(height * .2)
@@ -94,6 +95,8 @@ while True:
     print("hue_lower", hue_lower)
     print("hue_upper", hue_upper)
 
+    #img_resize = cv2.resize(org_img, (int(height * .4), int(width * .4)))
+
     hue_mask = cv2.inRange(masked_img_h_blur, hue_lower, hue_upper)
     contours, _ = cv2.findContours(hue_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     print("len(contours)", len(contours))
@@ -105,6 +108,44 @@ while True:
         box = np.int0(box)
         cv2.drawContours(draw_img, [box], 0, (0, 0, 255), 2)
 
+        # find
+        M = cv2.moments(cnt)
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+        print("Centroid = ", cx, ", ", cy)
+        x11 = int(cx - 150)
+        x22 = int(cx + 150)
+        y11 = int(cy - 150)
+        y22 = int(cy + 150)
+        cut = org_img[y11:y22, x11:x22]
+        tagged = cv2.rectangle(org_img, (x11, y11), (x22, y22), (0, 255, 0), 3, cv2.LINE_AA)
+        ext.resized_imshow(org_img, (int(height * .2), int(width * .2)), "org_img")
+        #cv2.imshow("img_resize", img_resize)
+
+        # vindt gemiddelde kleur
+        avg_color_per_row = np.average(cut, axis=0)
+        avg_color = np.average(avg_color_per_row, axis=0)
+        print("avg_color", avg_color)
+
+        if avg_color[2] > 90 and avg_color[0] < 10 and avg_color[2] < 112:
+            print('dit is een perzik')
+        if avg_color[2] > 118 and avg_color[0] < 10:
+            print('dit is een banaan')
+        if avg_color[2] < 60 and avg_color[1] < 60:
+            print('dit is een peer')
+
+        # vindt dominante kleur
+        pixels = np.float32(cut.reshape(-1, 3))
+        n_colors = 5
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, .1)
+        flags = cv2.KMEANS_RANDOM_CENTERS
+
+        _, labels, palette = cv2.kmeans(pixels, n_colors, None, criteria, 10, flags)
+        _, counts = np.unique(labels, return_counts=True)
+        dominant = palette[np.argmax(counts)]
+        print("dominant color", dominant)
+
+#cv2.imshow('edgs', cut)
 
     ext.resized_imshow(draw_img, (new_height, new_width), "draw_img")
     ext.resized_imshow(hue_mask, (new_height, new_width), "hue_mask")

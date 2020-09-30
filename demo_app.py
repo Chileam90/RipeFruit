@@ -9,15 +9,17 @@ import numpy as np
 from utilities.Sliders import Sliders
 from utilities import ExtendedCv2 as ext
 
-filenames = glob.glob('raw_images/banana_orange_peach_pear/01_*.jpg')
+# filenames = glob.glob('raw_images/banana_orange_peach_pear/*.jpg')
+filenames = glob.glob('raw_images/fruit_group/*.jpg')
+# filenames = glob.glob('raw_images/fruit_group_bowl/*.jpg')
 num_files = len(filenames) - 1
 file_index = 0
 
 slider = Sliders("sliders", "block_size", "constant_c", "s_channel_threshold", "canny_sigma", "contour_threshold")
 hue_slider = Sliders("hue_slider", "hue_lower", "hue_upper", "s_lower", "s_upper")
 slider.set_value_by_name("block_size", 150)
-slider.set_value_by_name("constant_c", 10)
-slider.set_value_by_name("s_channel_threshold", 40)
+slider.set_value_by_name("constant_c", 20)
+slider.set_value_by_name("s_channel_threshold", 60)
 slider.set_value_by_name("contour_threshold", 0)
 
 hue_slider.set_value_by_name("hue_upper", 255)
@@ -28,6 +30,8 @@ dominant_color = np.zeros(1, dtype=np.uint8)
 
 end_result = ""
 end_percentage = 0
+old_approx = np.nan
+old_results = np.nan
 
 fruit_list = ["peach", "orange", "banana", "pear"]
 hue_lower_list = [1, 13, 23, 40]
@@ -81,6 +85,12 @@ while True:
     contour_threshold = slider.get_value_by_name("contour_threshold")
     ret, thresh = cv2.threshold(mask_combined, 0, 255, cv2.THRESH_BINARY)
 
+    # show thresh
+    ext.resized_imshow(thresh, (new_height, new_width), "thresh")
+    # ext.resized_imshow(threshold_s, (new_height, new_width), "threshold_s")
+    # ext.resized_imshow(adaptive_s, (new_height, new_width), "adaptive_s")
+    # ext.resized_imshow(mask, (new_height, new_width), "mask inrange")
+
     ###
     # remove background from copied original image
     ###
@@ -92,7 +102,7 @@ while True:
     mask_img[:, :, 2] = cv2.bitwise_and(mask_img[:, :, 2], thresh)
 
     # show results
-    ext.resized_imshow(mask_combined, (new_height, new_width), "mask_combined")
+    # ext.resized_imshow(mask_combined, (new_height, new_width), "mask_combined")
     ext.resized_imshow(mask_img, (new_height, new_width), "mask_img")
 
     # get H channel from HSV colors to create contours for each Hue range
@@ -115,6 +125,17 @@ while True:
         rect = cv2.minAreaRect(cnt)
         center, (w, h), rot = rect
         if w > 300 and h > 300:
+            ###
+            # approxPolyDP
+            ###
+            epsilon = 0.025 * cv2.arcLength(cnt, True)
+            approx = cv2.approxPolyDP(cnt, epsilon, True)
+            cv2.drawContours(draw_img, [approx], 0, (0), 5)
+
+            if np.all(old_approx != approx):
+                old_approx = approx
+                print("number approx", len(approx))
+
             # get boxed points of rectangle in contour
             box = cv2.boxPoints(rect)
             box = np.int0(box)
@@ -173,18 +194,20 @@ while True:
             # get h channel
             h_dominant_color = hsv_dominant_color[:, :, 0].astype(np.float32)
 
-            print("fruit:", fruit_list[hue_index], "average:", h_avg_color[0], "dominant:", h_dominant_color[0])
+            # print("fruit:", fruit_list[hue_index], "average:", h_avg_color[0], "dominant:", h_dominant_color[0])
             newcomer = np.random.randint(0, 100, (1, 2)).astype(np.float32)
             newcomer[0][0] = h_avg_color[0]
             newcomer[0][1] = h_dominant_color[0]
-            print("newcomer", newcomer)
+            # print("newcomer", newcomer)
             ret, results, neighbours, dist = knn.findNearest(newcomer, 3)
 
-            print("result:  {}\n".format(results))
-            print("neighbours:  {}\n".format(neighbours))
-            print("distance:  {}\n".format(dist))
+            if np.any(old_results != results):
+                old_results = results
+                print("result:  {}\n".format(results))
+                print("neighbours:  {}\n".format(neighbours))
+                print("distance:  {}\n".format(dist))
 
-            print("fruit is:", fruit_list[int(results[0])])
+                print("fruit is:", fruit_list[int(results[0])])
 
         ext.resized_imshow(draw_img, (new_height, new_width), "draw_img")
 
@@ -198,8 +221,12 @@ while True:
         file_index += 1
     elif key == ord('a'):
         hue_index -= 1
+        old_approx = np.nan
+        old_results = np.nan
     elif key == ord('s'):
         hue_index += 1
+        old_approx = np.nan
+        old_results = np.nan
 
 
     if file_index > num_files:
@@ -212,7 +239,7 @@ while True:
     elif hue_index < 0:
         hue_index = hue_index_len
 
-    if key != 0:
+    if key != -1:
         print("file name", filenames[file_index])
         print("expected fruit:", fruit_list[hue_index])
 

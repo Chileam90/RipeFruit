@@ -28,7 +28,7 @@ file_index = 0
 slider = Sliders("sliders", "block_size", "constant_c", "s_channel_threshold", "canny_sigma", "contour_threshold")
 hue_slider = Sliders("hue_slider", "hue_lower", "hue_upper", "s_lower", "s_upper")
 slider.set_value_by_name("block_size", 150)
-slider.set_value_by_name("constant_c", 10)
+slider.set_value_by_name("constant_c", 20)
 slider.set_value_by_name("s_channel_threshold", 40)
 slider.set_value_by_name("contour_threshold", 0)
 
@@ -82,43 +82,46 @@ while True:
     #
     # cv2.drawContours(img, [cnt], 0, (0, 0, 255), 3)
 
-    mask_img = cv2.GaussianBlur(img, (13, 13), 0)
+    ext.resized_imshow(thresh, (new_height, new_width), "thresh")
+
+
+    mask_img = cv2.GaussianBlur(img, (49, 49), 0)
 
     mask_img[:, :, 0] = cv2.bitwise_and(mask_img[:, :, 0], thresh)
     mask_img[:, :, 1] = cv2.bitwise_and(mask_img[:, :, 1], thresh)
     mask_img[:, :, 2] = cv2.bitwise_and(mask_img[:, :, 2], thresh)
 
-    # ext.resized_imshow(mask, (new_height, new_width), "mask")
-    # ext.resized_imshow(thresh, (new_height, new_width), "thresh")
-    # ext.resized_imshow(adaptive_s, (new_height, new_width), "adaptive_s")
-    # ext.resized_imshow(threshold_s, (new_height, new_width), "threshold_s")
+    # show results
     ext.resized_imshow(mask_combined, (new_height, new_width), "mask_combined")
-    # ext.resized_imshow(img_s_blur, (new_height, new_width), "img_s_blur")
-
     ext.resized_imshow(mask_img, (new_height, new_width), "mask_img")
 
-    masked_img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV_FULL)
+    # get H channel from HSV colors to create contours for each Hue range
+    masked_img_hsv = cv2.cvtColor(mask_img, cv2.COLOR_BGR2HSV_FULL)
     masked_img_h = masked_img_hsv[:, :, 0]
 
-    # masked_img_h_blur = cv2.GaussianBlur(masked_img_h, (13, 13), 0)
-
-    # hue_histr = cv2.calcHist([masked_img_h], [0], None, [256], [1, 256])
-    #plt.plot(hue_histr)
-    #plt.show()
-
+    # get the upper and lower for each Hue range
     hue_lower = hue_slider.get_value_by_name("hue_lower")
     hue_upper = hue_slider.get_value_by_name("hue_upper")
 
-    # print("hue_lower", hue_lower)
-    # print("hue_upper", hue_upper)
-
-    #img_resize = cv2.resize(org_img, (int(height * .4), int(width * .4)))
-
+    # create hue mask for each Hue range
     hue_mask = cv2.inRange(masked_img_h, hue_lower, hue_upper)
     contours, _ = cv2.findContours(hue_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+    ext.resized_imshow(hue_mask, (new_height, new_width), "hue_mask")
     # print("len(contours)", len(contours))
     if len(contours) > 0:
         cnt = max(contours, key=cv2.contourArea)
+
+        ###
+        # approxPolyDP
+        ###
+        epsilon = 0.025 * cv2.arcLength(cnt, True)
+        approx = cv2.approxPolyDP(cnt, epsilon, True)
+        if old_approx != approx:
+            old_approx = approx
+            cv2.drawContours(draw_img, [approx], 0, (0), 5)
+            print ("number approx", len(approx))
+
         rect = cv2.minAreaRect(cnt)
         # print("rect.shape", rect)
         box = cv2.boxPoints(rect)

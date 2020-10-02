@@ -5,10 +5,10 @@ import numpy as np
 from utilities.Sliders import Sliders
 from utilities import ExtendedCv2 as ext
 
-img_peach = glob.glob("raw_images\\peach\\01_00_peach.jpg")
-img_orange = glob.glob("raw_images\\orange\\01_00_orange.jpg")
-img_banana = glob.glob("raw_images\\banana\\01_03_banana.jpg")
-img_pear = glob.glob("raw_images\\pear\\01_05_pear.jpg")
+img_peach = glob.glob("..\\raw_images\\peach\\01_00_peach.jpg")
+img_orange = glob.glob("..\\raw_images\\orange\\01_00_orange.jpg")
+img_banana = glob.glob("..\\raw_images\\banana\\01_03_banana.jpg")
+img_pear = glob.glob("..\\raw_images\\pear\\01_05_pear.jpg")
 
 slider = Sliders("sliders", "block_size", "constant_c", "s_channel_threshold", "contour_threshold")
 slider.set_value_by_name("block_size", 150)

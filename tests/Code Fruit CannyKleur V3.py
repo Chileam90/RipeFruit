@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 #import glob
 #from utilities.Sliders import Sliders
 
-imagebanaan = cv2.imread('banaan2.jpg')
+imagebanaan = cv2.imread('..\\raw_images\\banana\\01_00_banana.jpg')
 
 #Resize image
 scale_percent = 40

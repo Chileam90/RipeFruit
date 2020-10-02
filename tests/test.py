@@ -21,7 +21,7 @@ def auto_canny(image, lower_range=0, sigma=0.35):
     return edged
 
 
-filenames = glob.glob('raw_images/*/01_*.jpg')
+filenames = glob.glob('..\\raw_images\\*\\01_*.jpg')
 num_files = len(filenames) - 1
 file_index = 0
 

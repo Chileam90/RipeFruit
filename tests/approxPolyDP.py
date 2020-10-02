@@ -31,10 +31,10 @@ hue_index_len = len(fruit_list) - 1
 
 old_approx = np.nan
 
-file_peach = glob.glob("raw_images\\peach\\01_02_peach.jpg")
-file_orange = glob.glob("raw_images\\orange\\01_02_orange.jpg")
-file_banana = glob.glob("raw_images\\banana\\01_00_banana.jpg")
-file_pear = glob.glob("raw_images\\pear\\01_00_pear.jpg")
+file_peach = glob.glob("..\\raw_images\\peach\\01_02_peach.jpg")
+file_orange = glob.glob("..\\raw_images\\orange\\01_02_orange.jpg")
+file_banana = glob.glob("..\\raw_images\\banana\\01_00_banana.jpg")
+file_pear = glob.glob("..\\raw_images\\pear\\01_00_pear.jpg")
 
 filenames = [file_peach[0], file_orange[0], file_banana[0], file_pear[0]]
 num_files = len(filenames) - 1
@@ -130,12 +130,14 @@ while True:
         if len(contours) > 0:
             cnt = max(contours, key=cv2.contourArea)
 
+
             ###
             # approxPolyDP
             ###
             epsilon = 0.01 * cv2.arcLength(cnt, True)
             approx = cv2.approxPolyDP(cnt, epsilon, True)
             draw_img_tag = draw_img[y11:y22, x11:x22]
+            # cv2.drawContours(draw_img_tag, [cnt], 0, (255, 0, 0), 10)
             cv2.drawContours(draw_img_tag, [approx], 0, (255, 0, 0), 10)
 
             if np.all(old_approx != approx):
@@ -143,22 +145,22 @@ while True:
                 print("number approx", len(approx))
                 convex = cv2.isContourConvex(approx)
                 print("approx is convex:", convex)
-                cv2.rectangle(draw_img, (x11, y11), (x22, y22), (0, 0, 255), 10)
+                # cv2.rectangle(draw_img, (x11, y11), (x22, y22), (0, 0, 255), 10)
 
-                if convex:
-                    cv2.putText(draw_img, 'The contour of the ' + fruit_list[file_index] + 'is a convex',
-                                bottomLeftCornerOfText,
-                                font,
-                                fontScale,
-                                fontColor,
-                                lineType)
-                else:
-                    cv2.putText(draw_img, 'The contour of the ' + fruit_list[file_index] + ' is not a convex',
-                                bottomLeftCornerOfText,
-                                font,
-                                fontScale,
-                                fontColor,
-                                lineType)
+                # if convex:
+                #     cv2.putText(draw_img, 'The contour of the ' + fruit_list[file_index] + 'is a convex',
+                #                 bottomLeftCornerOfText,
+                #                 font,
+                #                 fontScale,
+                #                 fontColor,
+                #                 lineType)
+                # else:
+                #     cv2.putText(draw_img, 'The contour of the ' + fruit_list[file_index] + ' is not a convex',
+                #                 bottomLeftCornerOfText,
+                #                 font,
+                #                 fontScale,
+                #                 fontColor,
+                #                 lineType)
 
                 while True:
                     ext.resized_imshow(draw_img, (new_height, new_width), "draw_img")

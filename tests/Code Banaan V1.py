@@ -9,7 +9,7 @@ import numpy as np
 import glob
 from utilities.Sliders import Sliders
 
-uimagebanaan = cv2.imread('perzik.jpg')
+uimagebanaan = cv2.imread('..\\raw_images\\peach\\01_00_peach.jpg')
 
 #Resize image
 scale_percent = 40

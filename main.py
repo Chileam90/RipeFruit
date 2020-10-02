@@ -5,71 +5,91 @@ import numpy as np
 from utilities.Sliders import Sliders
 from utilities import ExtendedCv2 as ext
 
-filenames = glob.glob('raw_images/*/*.jpg')
+img_peach = glob.glob("raw_images\\peach\\01_00_peach.jpg")
+img_orange = glob.glob("raw_images\\orange\\01_00_orange.jpg")
+img_banana = glob.glob("raw_images\\banana\\01_03_banana.jpg")
+img_pear = glob.glob("raw_images\\pear\\01_05_pear.jpg")
 
-i = 0
-num_files = len(filenames) - 1
-slider = Sliders("sliders", "block_size", "constant_c", "erosion_i", "dilation_i", "lower", "upper")
-slider.set_value_by_name("block_size", 2)
-slider.set_value_by_name("constant_c", 2)
-slider.set_value_by_name("blur", 1)
+slider = Sliders("sliders", "block_size", "constant_c", "s_channel_threshold", "contour_threshold")
+slider.set_value_by_name("block_size", 150)
+slider.set_value_by_name("constant_c", 3)
+slider.set_value_by_name("s_channel_threshold", 40)
+slider.set_value_by_name("contour_threshold", 0)
+
+hue_slider = Sliders("hue_slider", "hue_lower", "hue_upper", "s_lower", "s_upper")
+hue_slider.set_value_by_name("hue_upper", 255)
+hue_slider.set_value_by_name("s_upper", 40)
+
+
+def combine_images():
+    img_0 = cv2.imread(img_peach[0])
+    img_1 = cv2.imread(img_orange[0])
+    img_2 = cv2.imread(img_banana[0])
+    img_3 = cv2.imread(img_pear[0])
+
+    img_h_0 = cv2.hconcat([img_0, img_1])
+    img_h_1 = cv2.hconcat([img_2, img_3])
+    n_img = cv2.vconcat([img_h_0, img_h_1])
+    return n_img
+
+cv2.erode
+
+img = combine_images()
+width, height, _ = img.shape
+new_width = int(width * .1)
+new_height = int(height * .1)
+n_size = (new_height, new_width)
 
 while True:
-    img = cv2.imread(filenames[i])
+    img = combine_images()
+    mask_img = img.copy()
+
     width, height, _ = img.shape
-    new_width = int(width * .2)
-    new_height = int(height * .2)
+    new_width = int(width * .1)
+    new_height = int(height * .1)
+    n_size = (new_height, new_width)
 
-    # original = cv2.resize(img, (new_height, new_width), interpolation=cv2.INTER_LINEAR)
+    # # adaptive Threshold on S channel in HSV colors
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV_FULL)
+    img_s = img_hsv[:, :, 1]
 
-    org_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    org_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV_FULL)
-    org_s = org_hsv[:,:,1]
-    org_gray_blur = cv2.GaussianBlur(org_gray, (99, 99), 0)
-    org_s_blur = cv2.GaussianBlur(org_s, (99, 99), 0)
-
+    img_s_blur = cv2.GaussianBlur(img_s, (99, 99), 0)
+    #
+    # # threshold filter on S channel after blur
+    s_channel_threshold = slider.get_value_by_name("s_channel_threshold")
+    ret, threshold_s = cv2.threshold(img_s_blur, s_channel_threshold, 255, cv2.THRESH_TOZERO)
+    #
     block_size = slider.get_value_by_index(0) if slider.get_value_by_index(0) % 2 else slider.get_value_by_index(0) + 1
     constant_c = slider.get_value_by_index(1) if slider.get_value_by_index(1) % 2 else slider.get_value_by_index(1) + 1
-
-    adaptive_s_inv = cv2.adaptiveThreshold(org_s_blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, block_size, constant_c)
-    adaptive_inv = cv2.adaptiveThreshold(org_gray_blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, block_size, constant_c)
-    # adaptive_cnts, _ = cv2.findContours(adaptive_inv, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    adaptive_s = cv2.adaptiveThreshold(img_s_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, constant_c)
     #
-    # num_cnts = 0
-    # for adaptive_cnt in adaptive_cnts:
-    #     ### gelijk aan canny edge
-    #     # arc_percentage = (slider.get_value_by_name("arc_percentage") / 10)
-    #     # epsilon = arc_percentage * cv2.arcLength(adaptive_cnt, False)
-    #     # approx_cnt = cv2.approxPolyDP(adaptive_cnt, epsilon, False)
-    #     ##################################################################################
-    #     if cv2.contourArea(adaptive_cnt) > (10000 * .4):
-    #         print("area", cv2.contourArea(adaptive_cnt))
-    #         cv2.drawContours(img, adaptive_cnt, -1, (255, 0, 0), 10)
-    #         num_cnts += 1
+    s_lower = hue_slider.get_value_by_name("s_lower")
+    s_upper = hue_slider.get_value_by_name("s_upper")
+    inrange_mask = cv2.inRange(img_s_blur, s_lower, s_upper)
     #
-    # print("number of contours", num_cnts)
+    mask_adapt_xor_inrange = cv2.bitwise_xor(adaptive_s, inrange_mask)
+    mask_combined = cv2.bitwise_xor(mask_adapt_xor_inrange, threshold_s)
+    # contour_threshold = slider.get_value_by_name("contour_threshold")
+    ret, thresh = cv2.threshold(mask_combined, 0, 255, cv2.THRESH_BINARY)
+    #
+    # mask_img = cv2.GaussianBlur(img, (49, 49), 0)
+    #
+    mask_img[:, :, 0] = cv2.bitwise_and(img[:, :, 0], thresh)
+    mask_img[:, :, 1] = cv2.bitwise_and(img[:, :, 1], thresh)
+    mask_img[:, :, 2] = cv2.bitwise_and(img[:, :, 2], thresh)
 
-    lower = slider.get_value_by_name("lower")
-    upper = slider.get_value_by_name("upper")
-    mask = cv2.inRange(org_s_blur, lower, upper)
-
-    dsize = (new_height, new_width)
-    ext.resized_imshow(org_gray, dsize, "org_gray")
-    ext.resized_imshow(org_s, dsize, "org_s")
-    ext.resized_imshow(adaptive_s_inv, dsize, "adaptive_s_inv")
-    ext.resized_imshow(adaptive_inv, dsize, "adaptive_inv")
-    ext.resized_imshow(mask, dsize, "inrange mask")
-    ext.resized_imshow(img, dsize, "img")
+    # show results
+    ext.resized_imshow(img_s, n_size, "img_s")
+    ext.resized_imshow(img, n_size, "original image")
+    # ext.resized_imshow(img_s_blur, n_size, "original image blur")
+    # ext.resized_imshow(adaptive_s, n_size, "adaptive threshold")
+    # ext.resized_imshow(threshold_s, n_size, "threshold binary")
+    # ext.resized_imshow(inrange_mask, n_size, "mask inRange")
+    ext.resized_imshow(mask_adapt_xor_inrange, (new_height, new_width), "adaptiveThreshold XOR inRange")
+    ext.resized_imshow(mask_combined, (new_height, new_width), "adaptiveThreshold XOR inRange XOR threshold")
+    ext.resized_imshow(thresh, n_size, "Threshold on final mask")
+    ext.resized_imshow(mask_img, n_size, "Final product")
 
     key = cv2.waitKey(10)
     if key == ord('q') or key == 27:
         break
-    elif key == ord('z'):
-        i -= 1
-    elif key == ord('x'):
-        i += 1
-
-    if i > num_files:
-        i = 0
-    elif i < 0:
-        i = num_files

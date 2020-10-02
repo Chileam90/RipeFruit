@@ -41,7 +41,7 @@ new_height = int(height * .1)
 n_size = (new_height, new_width)
 
 while True:
-    img = combine_images()
+    # img = combine_images()
     mask_img = img.copy()
 
     width, height, _ = img.shape
